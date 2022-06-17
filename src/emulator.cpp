@@ -12,21 +12,12 @@ void State::readProgram(const char* file) {
 	std::ifstream inFile{file, inFile.binary};
 	inFile.read((char*)memory.get(), RAMSize);
 }
-void dbreak() {}
-void bcheck(OpUtils::byte b) {
-	static OpUtils::byte opcodes[256]{};
-	if (opcodes[b] == 0) {
-		dbreak();
-		opcodes[b] = 1;
-	}
-}
 bool State::step() {
 	byte* opline = memory.get() + registers.pc;
 	OpUtils::disassembleOp(memory.get(), registers.pc);
 	byte opCode = opline[0];
 	OpUtils::BriefOpData opCodeInfo = OpUtils::opData(opCode);
 	registers.pc += opCodeInfo.size;
-	//if (registers.pc == 0x1A63) dbreak();
 	[[maybe_unused]] bool altSpeed = false;
 	switch (opCode) {
 		case 0x00: //NOP
@@ -39,10 +30,7 @@ bool State::step() {
 			dcr(registers.b());
 			break;
 		case 0x09: //DAD B
-			registers.l() += registers.c();
-			registers.h() += 0xFF - registers.c() > registers.l();
-			registers.h() += registers.b();
-			registers.flags.carry += 0xFF - registers.b() > registers.h();
+			dad(opCode);
 			break;
 		case 0x0D: //DCR C
 			dcr(registers.c());
@@ -53,6 +41,9 @@ bool State::step() {
 			break;
 		case 0x13: //INX D
 			inx(opCode);
+			break;
+		case 0x19: //DAD D
+			dad(opCode);
 			break;
 		case 0x1A: //LDAX D
 			registers.a() = memory[combineLH(registers.e(), registers.d())];
@@ -72,10 +63,7 @@ bool State::step() {
 			inx(opCode);
 			break;
 		case 0x29: //DAD H
-			registers.l() += registers.l();
-			registers.h() += 0xFF - registers.l() > registers.l();//this could overflow :(
-			registers.h() += registers.h();
-			registers.flags.carry += 0xFF - registers.h() > registers.h();
+			dad(opCode);
 			break;
 		case 0x31: //LXI SP
 			registers.sp = combineLH(opline[1], opline[2]);
@@ -107,10 +95,9 @@ bool State::step() {
 			sp += 2;
 			break;
 		}
-		case 0xD5: { //PUSH B
+		case 0xD5: //PUSH B
 			push(opCode);
 			break;
-		}
 		case 0xE1: //POP H
 			pop(opCode);
 			break;
@@ -119,6 +106,10 @@ bool State::step() {
 			break;
 		case 0xE6: //ANI
 			registers.flags.bitOpCheck(registers.a() &= opline[1]);
+			break;
+		case 0xEB: //XCHG
+			std::swap(registers.h(), registers.d());
+			std::swap(registers.l(), registers.e());
 			break;
 		case 0xF6: //ORI
 			registers.flags.bitOpCheck(registers.a() |= opline[1]);

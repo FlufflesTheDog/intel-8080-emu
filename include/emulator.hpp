@@ -14,18 +14,18 @@ struct Flags {
 		sign = n & 0x80;
 		parity = __builtin_parity(n) == 0;
 	}
-	byte doSub(byte l, byte r, bool withBorrow = true) {
-		byte result = l - r;
+	byte doSub(byte l, byte r, bool withBorrow = false) {
+		unsigned result = l - r;
+		result -= withBorrow && carry;
+		carry = result >> 8;
 		setMain(result);
-		if (withBorrow && carry) --result;
-		if (r > l) carry = 1;
 		return result;
 	}
-	byte doAdd(byte l, byte r, bool withCarry = true) {
-		byte result = l + r;
+	byte doAdd(byte l, byte r, bool withCarry = false) {
+		unsigned result = l + r;
+		result += withCarry && carry;
+		carry = result >> 8;
 		setMain(result);
-		if (withCarry && carry) ++result;
-		if (~byte{} - l > r) carry = 1;
 		return result;
 	}
 	void bitOpCheck(byte n) {
@@ -56,6 +56,8 @@ struct Registers {
 	constexpr uint8_t& h();
 	constexpr uint8_t& l();
 	constexpr uint8_t& int_enable();
+	constexpr void setSPLow(uint8_t l);
+	constexpr void setSPHigh(uint8_t h);
 	uint16_t getHL();
 	constexpr uint8_t& operator[](REGID i);
 	constexpr uint8_t operator[](REGID i) const;
@@ -67,7 +69,7 @@ class State {
 	std::unique_ptr<byte[]> memory;
 	Registers registers{};
 	uint16_t readAddr(const byte* mem) const;
-	uint16_t combineLH(byte low, byte high);
+	void dad(byte op);
 	void dcr(byte& n);
 	void inx(byte op);
 	bool jcnd(byte* op);
@@ -82,7 +84,7 @@ public:
 	void readBytes(const byte* stream, int size);
 	bool step();
 };
-inline uint16_t State::combineLH(byte low, byte high) {
+inline constexpr uint16_t combineLH(OpUtils::byte low, OpUtils::byte high) {
 	return low | high << 8;
 }
 
@@ -95,6 +97,8 @@ constexpr uint8_t& Registers::h() { return operator[](REGID::H); }
 constexpr uint8_t& Registers::l() { return operator[](REGID::L); }
 //this being in the array is to pad for the register operands not being all adjacent, refer to REGID enum
 constexpr uint8_t& Registers::int_enable() { return operator[](REGID::ADDR); }
+constexpr void Registers::setSPLow(uint8_t l) { sp = combineLH(l, sp >> 8); }
+constexpr void Registers::setSPHigh(uint8_t h) { sp = combineLH(sp & 0xFF, h); }
 
 constexpr uint8_t& Registers::operator[](REGID i) {
 	return r[static_cast<int>(i)];

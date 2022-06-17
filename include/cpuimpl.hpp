@@ -1,8 +1,32 @@
 #pragma once
 #include "emulator.hpp"
 #include <iostream>
+inline void State::dad(byte op) {
+	auto dad_ = [this](byte rh, byte rl) {
+		unsigned result = combineLH(rl, rh);
+		result += registers.getHL();
+		registers.l() = result & 0xFF;
+		registers.h() = result >> 8;
+		registers.flags.carry = result >> 16;
+	};
+	switch (op >> 4 & 0b11) {
+		case 0:
+			dad_(registers.b(), registers.c());
+			break;
+		case 1:
+			dad_(registers.d(), registers.e());
+			break;
+		case 2:
+			dad_(registers.h(), registers.l());
+			break;
+		case 3: {
+			dad_(registers.sp >>8, registers.sp & 0xFF);
+			break;
+		}
+	}
+}
 inline void State::dcr(byte& n) {
-	std::cout<<"decremented "<<(int)n<<'\n';
+	std::cout << "decremented " << (int)n << '\n';
 	--n;
 	registers.flags.setMain(n);
 }
