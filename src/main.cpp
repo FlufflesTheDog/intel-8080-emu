@@ -28,8 +28,11 @@ int main(int, char**) {
 	emulator.readProgram("invaders/invaders");
 	//auto prog = testProgram();
 	//emulator.readBytes(prog.data(), prog.size());
-	bool running;
-	do { running = emulator.step(); } while (running);
+	bool running = true;
+	do 
+	{ 
+		running = emulator.step();
+	} while (running);
 	//auto prog = readProgram("invaders/invaders");
 	//byte* instr = prog.data();
 	//for (int pc = 0, end = prog.size(); pc < end;) {

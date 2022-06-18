@@ -2,6 +2,11 @@
 #include "oputils.hpp"
 #include <cstdint>
 #include <memory>
+
+#ifdef _MSC_VER
+#  define __builtin_parity OpUtils::findParity
+#endif
+
 struct Flags {
 	using byte = OpUtils::byte;
 	uint8_t zero: 1;

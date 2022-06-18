@@ -14,8 +14,6 @@ target_compile_options(main_compiler_flags INTERFACE
 	"$<${msvc_cxx}:$<BUILD_INTERFACE:-W3>>"
 )
 
-target_link_libraries(Emulator asan)
-target_link_libraries(Emulator fmt)
 target_link_libraries(Emulator main_compiler_flags)
 
 

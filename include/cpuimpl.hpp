@@ -2,6 +2,7 @@
 #include "emulator.hpp"
 #include <iostream>
 inline void State::dad(byte op) {
+
 	auto dad_ = [this](byte rh, byte rl) {
 		unsigned result = combineLH(rl, rh);
 		result += registers.getHL();
@@ -9,6 +10,7 @@ inline void State::dad(byte op) {
 		registers.h() = result >> 8;
 		registers.flags.carry = result >> 16;
 	};
+
 	switch (op >> 4 & 0b11) {
 		case 0:
 			dad_(registers.b(), registers.c());
@@ -25,11 +27,12 @@ inline void State::dad(byte op) {
 		}
 	}
 }
+
 inline void State::dcr(byte& n) {
-	std::cout << "decremented " << (int)n << '\n';
 	--n;
 	registers.flags.setMain(n);
 }
+
 inline void State::inx(byte op) {
 	auto inx_ = [](byte& rh, byte& rl) {
 		++rl;
@@ -52,9 +55,9 @@ inline void State::inx(byte op) {
 }
 inline bool State::jcnd(byte* op) {
 	byte instr = op[0];
-	bool pass;
+	bool pass = false;
 	bool tgt = instr & 1;
-	switch (instr >> 4 & 0b11) {
+	switch ((instr >> 4) & 0b11) {
 		case 0:
 			pass = registers.flags.zero == tgt;
 			break;
@@ -68,10 +71,12 @@ inline bool State::jcnd(byte* op) {
 			pass = registers.flags.sign == tgt;
 			break;
 	}
-	if (pass) jmp(op);
+	if (pass) { jmp(op); }
 	return pass;
 }
+
 inline void State::jmp(byte* op) { registers.pc = op[1] | op[2] << 8; }
+
 inline void State::mov(byte* op) {
 	auto getLoc = [this](byte loc) -> byte* {
 		using R = Registers::REGID;
@@ -89,6 +94,7 @@ inline void State::mov(byte* op) {
 	byte* dst = getLoc(opcode >> 3 & 0b111);
 	*dst = *src;
 }
+
 inline void State::pop(byte op) {
 	auto pop_ = [this](byte& rh, byte& rl) {
 		rl = memory[registers.sp++];
@@ -108,6 +114,7 @@ inline void State::pop(byte op) {
 			break;
 	}
 }
+
 inline void State::push(byte op) {
 	auto push_ = [this](byte& rh, byte& rl) {
 		memory[--registers.sp] = rh;
