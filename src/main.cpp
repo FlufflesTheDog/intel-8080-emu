@@ -10,9 +10,9 @@
 int main()
 {
 	State emulator("invaders/invaders");
-	bool running = true;
-	do
+	bool running = emulator.IsValid();
+	while (running)
 	{
 		running = emulator.StepOpCode();
-	} while (running);
+	}
 }

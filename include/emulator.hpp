@@ -94,14 +94,14 @@ class State
 	using byte = OpUtils::byte;
 public:
 	// Initializer for Processor State
-	State();
-	State(const char* file);
+	State() = default;
+	State(const char* fileName);
 
 	/// <summary>
 	/// Read file consisting of data
 	/// </summary>
 	/// <param name="file">File Name relative to executable</param>
-	void ReadProgram(const char* file);
+	void ReadProgram(const char* fileName);
 	/// <summary>
 	/// ReadBytes function. Currently unused.
 	/// </summary>
@@ -113,6 +113,7 @@ public:
 	/// </summary>
 	/// <returns>True if it succeeded. False if it failed to process the OP Code</returns>
 	bool StepOpCode();
+	bool IsValid();
 private:
 	static constexpr int RAMSize = 0x10000; //0xFFFF + 1 == 0x10000;
 	std::unique_ptr<byte[]> Memory;

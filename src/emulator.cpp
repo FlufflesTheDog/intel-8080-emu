@@ -3,23 +3,36 @@
 #include <fstream>
 #include <functional>
 
-State::State() : Memory(std::make_unique_for_overwrite<byte[]>(RAMSize)) {}
-
-State::State(const char* file)
+State::State(const char* fileName)
 {
-	State();
-	ReadProgram(file);
+	ReadProgram(fileName);
 }
 
 void State::ReadBytes(const byte* stream, int size)
 {
+	if (!Memory)
+	{
+		Memory = std::make_unique_for_overwrite<byte[]>(RAMSize);
+	}
 	std::memcpy(Memory.get(), stream, size);
 }
-void State::ReadProgram(const char* file)
+
+void State::ReadProgram(const char* fileName)
 {
-	std::ifstream inFile{ file, inFile.binary };
+	std::ifstream inFile{ fileName, inFile.binary };
+	if (!inFile.is_open()) return;
+	if (!Memory)
+	{
+		Memory = std::make_unique_for_overwrite<byte[]>(RAMSize);
+	}
 	inFile.read((char*)Memory.get(), RAMSize);
 }
+
+bool State::IsValid()
+{
+	return Memory != nullptr;
+}
+
 bool State::StepOpCode()
 {
 	byte* opline = Memory.get() + registers.PC;
