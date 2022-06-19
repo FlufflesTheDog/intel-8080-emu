@@ -7,44 +7,54 @@
 #  define __builtin_parity OpUtils::findParity
 #endif
 
-struct Flags {
+/// <summary>
+/// Struct representing the Flags in the Intel 8080 Processor
+/// </summary>
+struct Flags
+{
 	using byte = OpUtils::byte;
-	uint8_t zero: 1;
-	uint8_t sign: 1;
-	uint8_t parity: 1;
-	uint8_t carry: 1;
-	uint8_t auxCarry: 1; //Unimplemented for Space Invaders
+	uint8_t Zero : 1;
+	uint8_t Sign : 1;
+	uint8_t Parity : 1;
+	uint8_t Carry : 1;
+	uint8_t AuxiliaryCarry : 1; //Unimplemented for Space Invaders
 
-	void setMain(byte n) {
-		zero = n == 0;
-		sign = n & 0x80;
-		parity = __builtin_parity(n) == 0;
+	void SetMainFlags(byte n)
+	{
+		Zero = n == 0;
+		Sign = n & 0x80;
+		Parity = __builtin_parity(n) == 0;
 	}
 
-	byte doSub(byte l, byte r, bool withBorrow = false) {
+	byte DoSubtraction(byte l, byte r, bool withBorrow = false)
+	{
 		unsigned result = l - r;
-		result -= withBorrow && carry;
-		carry = result >> 8;
-		setMain(result);
+		result -= withBorrow && Carry;
+		Carry = result >> 8;
+		SetMainFlags(result);
 		return result;
 	}
 
-	byte doAdd(byte l, byte r, bool withCarry = false) {
+	byte DoAddition(byte l, byte r, bool withCarry = false)
+	{
 		unsigned result = l + r;
-		result += withCarry && carry;
-		carry = result >> 8;
-		setMain(result);
+		result += withCarry && Carry;
+		Carry = result >> 8;
+		SetMainFlags(result);
 		return result;
 	}
 
-	void bitOpCheck(byte n) {
-		setMain(n);
-		carry = 0;
+	void bitOpCheck(byte n)
+	{
+		SetMainFlags(n);
+		Carry = 0;
 	}
 };
 
-struct Registers {
-	enum class REGID {
+struct Registers
+{
+	enum class REG_ID
+	{
 		B = 0,
 		C = 1,
 		D = 2,
@@ -56,8 +66,14 @@ struct Registers {
 	};
 	Flags flags;
 	uint8_t r[8];
-	uint16_t sp;
-	uint16_t pc;
+	/// <summary>
+	/// Stack Pointer
+	/// </summary>
+	uint16_t SP;
+	/// <summary>
+	/// Program Counter
+	/// </summary>
+	uint16_t PC;
 	constexpr uint8_t& a();
 	constexpr uint8_t& b();
 	constexpr uint8_t& c();
@@ -66,17 +82,40 @@ struct Registers {
 	constexpr uint8_t& h();
 	constexpr uint8_t& l();
 	constexpr uint8_t& int_enable();
-	constexpr void setSPLow(uint8_t l);
-	constexpr void setSPHigh(uint8_t h);
-	uint16_t getHL();
-	constexpr uint8_t& operator[](REGID i);
-	constexpr uint8_t operator[](REGID i) const;
+	constexpr void SetSPLowBits(uint8_t l);
+	constexpr void SetSPHighBits(uint8_t h);
+	uint16_t GetHL();
+	constexpr uint8_t& operator[](REG_ID i);
+	constexpr uint8_t operator[](REG_ID i) const;
 };
 
-class State {
+class State
+{
 	using byte = OpUtils::byte;
-	static constexpr int RAMSize = 0xFFFF + 1;
-	std::unique_ptr<byte[]> memory;
+public:
+	// Initializer for Processor State
+	State();
+	State(const char* file);
+
+	/// <summary>
+	/// Read file consisting of data
+	/// </summary>
+	/// <param name="file">File Name relative to executable</param>
+	void ReadProgram(const char* file);
+	/// <summary>
+	/// ReadBytes function. Currently unused.
+	/// </summary>
+	/// <param name="stream"></param>
+	/// <param name="size"></param>
+	void ReadBytes(const byte* stream, int size);
+	/// <summary>
+	/// Steps through a single OP code of the given CPU Emulator state.
+	/// </summary>
+	/// <returns>True if it succeeded. False if it failed to process the OP Code</returns>
+	bool StepOpCode();
+private:
+	static constexpr int RAMSize = 0x10000; //0xFFFF + 1 == 0x10000;
+	std::unique_ptr<byte[]> Memory;
 	Registers registers{};
 	uint16_t readAddr(const byte* mem) const;
 	void dad(byte op);
@@ -87,35 +126,32 @@ class State {
 	void mov(byte* op);
 	void pop(byte op);
 	void push(byte op);
-
-public:
-	State();
-	void readProgram(const char* file);
-	void readBytes(const byte* stream, int size);
-	bool step();
 };
 
-inline constexpr uint16_t combineLH(OpUtils::byte low, OpUtils::byte high) {
+inline constexpr uint16_t combineLH(OpUtils::byte low, OpUtils::byte high)
+{
 	return low | high << 8;
 }
 
-constexpr uint8_t& Registers::a() { return operator[](REGID::A); }
-constexpr uint8_t& Registers::b() { return operator[](REGID::B); }
-constexpr uint8_t& Registers::c() { return operator[](REGID::C); }
-constexpr uint8_t& Registers::d() { return operator[](REGID::D); }
-constexpr uint8_t& Registers::e() { return operator[](REGID::E); }
-constexpr uint8_t& Registers::h() { return operator[](REGID::H); }
-constexpr uint8_t& Registers::l() { return operator[](REGID::L); }
+constexpr uint8_t& Registers::a() { return operator[](REG_ID::A); }
+constexpr uint8_t& Registers::b() { return operator[](REG_ID::B); }
+constexpr uint8_t& Registers::c() { return operator[](REG_ID::C); }
+constexpr uint8_t& Registers::d() { return operator[](REG_ID::D); }
+constexpr uint8_t& Registers::e() { return operator[](REG_ID::E); }
+constexpr uint8_t& Registers::h() { return operator[](REG_ID::H); }
+constexpr uint8_t& Registers::l() { return operator[](REG_ID::L); }
 //this being in the array is to pad for the register operands not being all adjacent, refer to REGID enum
-constexpr uint8_t& Registers::int_enable() { return operator[](REGID::ADDR); }
-constexpr void Registers::setSPLow(uint8_t l) { sp = combineLH(l, sp >> 8); }
-constexpr void Registers::setSPHigh(uint8_t h) { sp = combineLH(sp & 0xFF, h); }
+constexpr uint8_t& Registers::int_enable() { return operator[](REG_ID::ADDR); }
+constexpr void Registers::SetSPLowBits(uint8_t l) { SP = combineLH(l, SP >> 8); }
+constexpr void Registers::SetSPHighBits(uint8_t h) { SP = combineLH(SP & 0xFF, h); }
 
-constexpr uint8_t& Registers::operator[](REGID i) {
+constexpr uint8_t& Registers::operator[](REG_ID i)
+{
 	return r[static_cast<int>(i)];
 }
-constexpr uint8_t Registers::operator[](REGID i) const {
+constexpr uint8_t Registers::operator[](REG_ID i) const
+{
 	return r[static_cast<int>(i)];
 }
-inline uint16_t Registers::getHL() { return h() << 8 | l(); }
+inline uint16_t Registers::GetHL() { return h() << 8 | l(); }
 #include "cpuimpl.hpp"

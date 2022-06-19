@@ -3,23 +3,33 @@
 #include <fstream>
 #include <functional>
 
-State::State(): memory(std::make_unique_for_overwrite<byte[]>(RAMSize)) {}
+State::State() : Memory(std::make_unique_for_overwrite<byte[]>(RAMSize)) {}
 
-void State::readBytes(const byte* stream, int size) {
-	std::memcpy(memory.get(), stream, size);
+State::State(const char* file)
+{
+	State();
+	ReadProgram(file);
 }
-void State::readProgram(const char* file) {
-	std::ifstream inFile{file, inFile.binary};
-	inFile.read((char*)memory.get(), RAMSize);
+
+void State::ReadBytes(const byte* stream, int size)
+{
+	std::memcpy(Memory.get(), stream, size);
 }
-bool State::step() {
-	byte* opline = memory.get() + registers.pc;
-	OpUtils::disassembleOp(memory.get(), registers.pc);
+void State::ReadProgram(const char* file)
+{
+	std::ifstream inFile{ file, inFile.binary };
+	inFile.read((char*)Memory.get(), RAMSize);
+}
+bool State::StepOpCode()
+{
+	byte* opline = Memory.get() + registers.PC;
+	OpUtils::disassembleOp(Memory.get(), registers.PC);
 	byte opCode = opline[0];
 	OpUtils::BriefOpData opCodeInfo = OpUtils::opData(opCode);
-	registers.pc += opCodeInfo.size;
+	registers.PC += opCodeInfo.size;
 	[[maybe_unused]] bool altSpeed = false;
-	switch (opCode) {
+	switch (opCode)
+	{
 		case 0x00: //NOP
 			break;
 		case 0x01: //LXI B
@@ -46,13 +56,14 @@ bool State::step() {
 			dad(opCode);
 			break;
 		case 0x1A: //LDAX D
-			registers.a() = memory[combineLH(registers.e(), registers.d())];
+			registers.a() = Memory[combineLH(registers.e(), registers.d())];
 			break;
-		case 0x1F: { //RAR
+		case 0x1F:
+		{ //RAR
 			byte tmpBit = registers.a() & 1;
 			registers.a() >>= 1;
-			registers.a() &= registers.flags.carry << 7;
-			registers.flags.carry = tmpBit;
+			registers.a() &= registers.flags.Carry << 7;
+			registers.flags.Carry = tmpBit;
 			break;
 		}
 		case 0x21: //LXI H D16
@@ -66,12 +77,12 @@ bool State::step() {
 			dad(opCode);
 			break;
 		case 0x31: //LXI SP
-			registers.sp = combineLH(opline[1], opline[2]);
+			registers.SP = combineLH(opline[1], opline[2]);
 			break;
 		case 0x76: //HLT
 			return false;
 		case 0xB6: //ORA M
-			registers.flags.bitOpCheck(registers.a() |= memory[registers.getHL()]);
+			registers.flags.bitOpCheck(registers.a() |= Memory[registers.GetHL()]);
 			break;
 		case 0xC1: //POP B
 			break;
@@ -85,13 +96,14 @@ bool State::step() {
 			push(opCode);
 			break;
 		case 0xCD: //CALL
-			memory[--registers.sp] = registers.pc >> 8;
-			memory[--registers.sp] = registers.pc & 0xFF;
-			registers.pc = combineLH(opline[1], opline[2]);
+			Memory[--registers.SP] = registers.PC >> 8;
+			Memory[--registers.SP] = registers.PC & 0xFF;
+			registers.PC = combineLH(opline[1], opline[2]);
 			break;
-		case 0xC9: { //RET
-			auto& sp = registers.sp;
-			registers.pc = combineLH(memory[sp], memory[sp + 1]);
+		case 0xC9:
+		{ //RET
+			auto& sp = registers.SP;
+			registers.PC = combineLH(Memory[sp], Memory[sp + 1]);
 			sp += 2;
 			break;
 		}
@@ -115,14 +127,18 @@ bool State::step() {
 			registers.flags.bitOpCheck(registers.a() |= opline[1]);
 			break;
 		case 0xFE: //CPI
-			registers.a() = registers.flags.doSub(registers.a(), opline[1]);
+			registers.a() = registers.flags.DoSubtraction(registers.a(), opline[1]);
 			break;
-		default: {
+		default:
+		{
 			constexpr byte MVIMask = ~0x38u & 0xFF;
-			if (static_cast<byte>(opCode - 0x40) < 0x40u || (opCode & MVIMask) == 0b110) {
+			if (static_cast<byte>(opCode - 0x40) < 0x40u || (opCode & MVIMask) == 0b110)
+			{
 				mov(opline); //MOV & MVI
-			} else {
-				throw std::runtime_error{"Unimplemented instruction"};
+			}
+			else
+			{
+				throw std::runtime_error{ "Unimplemented instruction" };
 			}
 		}
 	}
