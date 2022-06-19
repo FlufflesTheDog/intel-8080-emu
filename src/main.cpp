@@ -1,10 +1,3 @@
-#include <cstdint>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <memory>
-#include <vector>
-#include "oputils.hpp"
 #include "emulator.hpp"
 
 int main()

@@ -1,7 +1,6 @@
 #include "emulator.hpp"
 #include <cstring>
 #include <fstream>
-#include <functional>
 
 State::State(const char* fileName)
 {

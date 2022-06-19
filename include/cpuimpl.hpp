@@ -1,6 +1,5 @@
 #pragma once
 #include "emulator.hpp"
-#include <iostream>
 inline void State::dad(byte op)
 {
 
