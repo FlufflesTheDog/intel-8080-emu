@@ -18,11 +18,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: GCC Install
-        run: sudo apt install gcc-12 g++-12
-        run: echo "CXX=g++-12" >> $GITHUB_ENV
-    
     - uses: actions/checkout@v3
+
+    - name: gccs
+      run: sudo apt install gcc-12 g++-12
+
+    - name: gccset
+      run: echo "CXX=g++-12" >> $GITHUB_ENV
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
