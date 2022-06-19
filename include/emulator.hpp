@@ -14,11 +14,13 @@ struct Flags {
 	uint8_t parity: 1;
 	uint8_t carry: 1;
 	uint8_t auxCarry: 1; //Unimplemented for Space Invaders
+
 	void setMain(byte n) {
 		zero = n == 0;
 		sign = n & 0x80;
 		parity = __builtin_parity(n) == 0;
 	}
+
 	byte doSub(byte l, byte r, bool withBorrow = false) {
 		unsigned result = l - r;
 		result -= withBorrow && carry;
@@ -26,6 +28,7 @@ struct Flags {
 		setMain(result);
 		return result;
 	}
+
 	byte doAdd(byte l, byte r, bool withCarry = false) {
 		unsigned result = l + r;
 		result += withCarry && carry;
@@ -33,11 +36,13 @@ struct Flags {
 		setMain(result);
 		return result;
 	}
+
 	void bitOpCheck(byte n) {
 		setMain(n);
 		carry = 0;
 	}
 };
+
 struct Registers {
 	enum class REGID {
 		B = 0,
@@ -89,6 +94,7 @@ public:
 	void readBytes(const byte* stream, int size);
 	bool step();
 };
+
 inline constexpr uint16_t combineLH(OpUtils::byte low, OpUtils::byte high) {
 	return low | high << 8;
 }
