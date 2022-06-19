@@ -10,7 +10,7 @@ add_library(main_compiler_flags INTERFACE)
 set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,ARMClang,AppleClang,Clang,GNU>")
 set(msvc_cxx "$<COMPILE_LANG_AND_ID:CXX,MSVC>")
 target_compile_options(main_compiler_flags INTERFACE
-	"$<${gcc_like_cxx}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2;-Wunused;-ggdb3;-fsanitize=address>>"
+	"$<${gcc_like_cxx}:$<BUILD_INTERFACE:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2;-Wunused;-ggdb3>"
 	"$<${msvc_cxx}:$<BUILD_INTERFACE:-W3>>"
 )
 
