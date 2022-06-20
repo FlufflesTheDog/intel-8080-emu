@@ -1,6 +1,8 @@
 #include "oputils.hpp"
 #include <vector>
+#ifndef FMT_HEADER_ONLY
 #define FMT_HEADER_ONLY
+#endif
 #include <fmt/core.h>
 
 namespace OpUtils
