@@ -2,7 +2,6 @@
 #include "emulator.hpp"
 inline void State::dad(byte op)
 {
-
 	auto dad_ = [this](byte rh, byte rl) {
 		unsigned result = combineLH(rl, rh);
 		result += registers.GetHL();

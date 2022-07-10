@@ -51,13 +51,25 @@ bool State::StepOpCode()
 		case 0x05: //DCR B
 			dcr(registers.b());
 			break;
+		case 0x06: //MVI B, D8
+			mov(opline);
+			break;
 		case 0x09: //DAD B
 			dad(opCode);
 			break;
 		case 0x0D: //DCR C
 			dcr(registers.c());
 			break;
-		case 0x11: //LXI D
+		case 0x0e: //MVI C, D8
+			mov(opline);
+			break;
+		case 0x0f: //RRC
+		{
+			uint8_t x = registers.a();
+			registers.a() = ((x & 1) << 7) | (x >> 1);
+		}
+			break;
+		case 0x11: //LXI D, D16
 			registers.e() = opline[1];
 			registers.d() = opline[2];
 			break;
@@ -85,11 +97,44 @@ bool State::StepOpCode()
 		case 0x23: //INX H
 			inx(opCode);
 			break;
+		case 0x26: // MVI H, D8
+			mov(opline);
+			break;
 		case 0x29: //DAD H
 			dad(opCode);
 			break;
 		case 0x31: //LXI SP
 			registers.SP = combineLH(opline[1], opline[2]);
+			break;
+		case 0x32: //STA adr
+			/*
+			* STA Store Accumulator Direct
+				Description: The contents of the accumulator replace
+				the byte at the memory address formed by concatenating
+				HI ADD with LOW ADD.
+			*/
+			Memory[combineLH(opline[1], opline[2])] = registers.a();
+			break;
+		case 0x36: //MVI M,D8
+			mov(opline);
+			break;
+		case 0x3a: //LDA adr
+			registers.a() = Memory[combineLH(opline[1], opline[2])];
+			break;
+		case 0x3e: //MVI A,D8
+			mov(opline);
+			break;
+		case 0x56: //MOV D,M
+			mov(opline);
+			break;
+		case 0x5e: //MOV E,M
+			mov(opline);
+			break;
+		case 0x66: //MOV H,M
+			mov(opline);
+			break;
+		case 0x6f: //MOV L,A
+			mov(opline);
 			break;
 		case 0x76: //HLT
 			return false;
