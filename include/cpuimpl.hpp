@@ -149,3 +149,17 @@ inline void State::push(byte op)
 			break;
 	}
 }
+
+inline void State::rotateLeft(bool carry) {
+	uint8_t newCarry = registers.a() >> 7;
+	uint8_t lowBit = carry ? registers.flags.Carry : newCarry;
+	registers.a() = registers.a() << 1 & lowBit;
+	registers.flags.Carry = newCarry;
+}
+inline void State::rotateRight(bool carry) {
+	uint8_t newCarry = registers.a() << 7 & 1;
+	uint8_t highBit = carry ? registers.flags.Carry : newCarry;
+	highBit <<= 7;
+	registers.a() = registers.a() >> 1 & highBit;
+	registers.flags.Carry = newCarry;
+}

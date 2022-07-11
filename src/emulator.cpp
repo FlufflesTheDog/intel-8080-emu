@@ -64,10 +64,7 @@ bool State::StepOpCode()
 			mov(opline);
 			break;
 		case 0x0f: //RRC
-		{
-			uint8_t x = registers.a();
-			registers.a() = ((x & 1) << 7) | (x >> 1);
-		}
+			rotateRight();
 			break;
 		case 0x11: //LXI D, D16
 			registers.e() = opline[1];
@@ -82,14 +79,9 @@ bool State::StepOpCode()
 		case 0x1A: //LDAX D
 			registers.a() = Memory[combineLH(registers.e(), registers.d())];
 			break;
-		case 0x1F:
-		{ //RAR
-			byte tmpBit = registers.a() & 1;
-			registers.a() >>= 1;
-			registers.a() &= registers.flags.Carry << 7;
-			registers.flags.Carry = tmpBit;
+		case 0x1F: //RAR
+			rotateRight(true);
 			break;
-		}
 		case 0x21: //LXI H D16
 			registers.l() = opline[1];
 			registers.h() = opline[2];
@@ -133,11 +125,26 @@ bool State::StepOpCode()
 		case 0x66: //MOV H,M
 			mov(opline);
 			break;
-		case 0x6f: //MOV L,A
+		case 0x6F: //MOV L,A
 			mov(opline);
 			break;
 		case 0x76: //HLT
 			return false;
+		case 0x77: //MOV M, A
+			mov(opline);
+			break;
+		case 0x7A: //MOV A, D
+			mov(opline);
+			break;
+		case 0x7B: //MOV A, E
+			mov(opline);
+			break;
+		case 0x7C: //MOV A, H
+			mov(opline);
+			break;
+		case 0x7E: //MOV A, M
+			mov(opline);
+			break;
 		case 0xA7: //ANA A
 			registers.flags.bitOpCheck(registers.a() &= registers.a());
 			break;
@@ -162,13 +169,10 @@ bool State::StepOpCode()
 		case 0xC6: //ADI D8
 			registers.a() = registers.flags.DoAddition(registers.a(), opline[1]);
 			break;
-		case 0xC9:
-		{ //RET
-			auto& sp = registers.SP;
-			registers.PC = combineLH(Memory[sp], Memory[sp + 1]);
-			sp += 2;
+		case 0xC9: //RET
+			registers.PC = combineLH(Memory[registers.SP], Memory[registers.SP + 1]);
+			registers.SP += 2;
 			break;
-		}
 		case 0xCD: //CALL
 			Memory[--registers.SP] = registers.PC >> 8;
 			Memory[--registers.SP] = registers.PC & 0xFF;
@@ -215,17 +219,7 @@ bool State::StepOpCode()
 			registers.flags.DoSubtraction(registers.a(), opline[1]);
 			break;
 		default:
-		{
-			constexpr byte MVIMask = ~0x38u & 0xFF;
-			if (static_cast<byte>(opCode - 0x40) < 0x40u || (opCode & MVIMask) == 0b110)
-			{
-				mov(opline); //MOV & MVI
-			}
-			else
-			{
-				throw std::runtime_error{ "Unimplemented instruction" };
-			}
-		}
+			throw std::runtime_error{ "Unimplemented instruction" };
 	}
 	//cycleCount += altSpeed ? opCodeInfo.time.max : opCodeInfo.time.min;
 	return true;

@@ -29,7 +29,7 @@ struct Flags
 	void SetMainFlags(byte n)
 	{
 		Zero = n == 0;
-		Sign = (0x80 == (n & 0x80));
+		Sign = n >> 7;
 		Parity = __builtin_parity(n) == 0;
 	}
 
@@ -140,6 +140,8 @@ private:
 	void mov(byte* op);
 	void pop(byte op);
 	void push(byte op);
+	void rotateLeft(bool carry = false);
+	void rotateRight(bool carry = false);
 };
 
 inline constexpr uint16_t combineLH(OpUtils::byte low, OpUtils::byte high)
