@@ -12,6 +12,13 @@
 /// </summary>
 struct Flags
 {
+	enum FlagPos {
+		CARRY = 0,
+		PARITY = 2,
+		AUXCARRY = 4,
+		ZERO = 6,
+		SIGN = 7,
+	};
 	using byte = OpUtils::byte;
 	uint8_t Zero : 1;
 	uint8_t Sign : 1;
@@ -89,6 +96,8 @@ struct Registers
 	constexpr void SetSPLowBits(uint8_t l);
 	constexpr void SetSPHighBits(uint8_t h);
 	uint16_t GetHL();
+	uint8_t flagsToByte() const;
+	void byteToFlags(uint8_t flagByte);
 	constexpr uint8_t& operator[](REG_ID i);
 	constexpr uint8_t operator[](REG_ID i) const;
 };
@@ -157,6 +166,27 @@ constexpr uint8_t& Registers::operator[](REG_ID i)
 constexpr uint8_t Registers::operator[](REG_ID i) const
 {
 	return r[static_cast<int>(i)];
+}
+inline uint8_t Registers::flagsToByte() const {
+	return
+		flags.Sign << flags.SIGN |
+		flags.Zero << flags.ZERO |
+		0 << 5 |
+		flags.AuxiliaryCarry << flags.AUXCARRY |
+		0 << 3 |
+		flags.Parity << flags.PARITY |
+		1 << 1 |
+		flags.Carry;
+}
+inline void Registers::byteToFlags(uint8_t flagByte) {
+	auto getBit = [flagByte](int bitNumber) {
+		return flagByte >> bitNumber & 1;
+	};
+	flags.Sign = getBit(flags.SIGN);
+	flags.Zero = getBit(flags.ZERO);
+	flags.AuxiliaryCarry = getBit(flags.AUXCARRY);
+	flags.Parity = getBit(flags.PARITY);
+	flags.Carry = getBit(flags.CARRY);
 }
 inline uint16_t Registers::GetHL() { return h() << 8 | l(); }
 #include "cpuimpl.hpp"

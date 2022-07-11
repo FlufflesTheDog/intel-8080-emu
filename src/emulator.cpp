@@ -138,6 +138,12 @@ bool State::StepOpCode()
 			break;
 		case 0x76: //HLT
 			return false;
+		case 0xA7: //ANA A
+			registers.flags.bitOpCheck(registers.a() &= registers.a());
+			break;
+		case 0xAF: //XRA A
+			registers.flags.bitOpCheck(registers.a() ^= registers.a());
+			break;
 		case 0xB6: //ORA M
 			registers.flags.bitOpCheck(registers.a() |= Memory[registers.GetHL()]);
 			break;
@@ -152,10 +158,8 @@ bool State::StepOpCode()
 		case 0xC5: //PUSH B
 			push(opCode);
 			break;
-		case 0xCD: //CALL
-			Memory[--registers.SP] = registers.PC >> 8;
-			Memory[--registers.SP] = registers.PC & 0xFF;
-			registers.PC = combineLH(opline[1], opline[2]);
+		case 0xC6: //ADI D8
+			registers.a() = registers.flags.DoAddition(registers.a(), 1);
 			break;
 		case 0xC9:
 		{ //RET
@@ -164,7 +168,15 @@ bool State::StepOpCode()
 			sp += 2;
 			break;
 		}
-		case 0xD5: //PUSH B
+		case 0xCD: //CALL
+			Memory[--registers.SP] = registers.PC >> 8;
+			Memory[--registers.SP] = registers.PC & 0xFF;
+			registers.PC = combineLH(opline[1], opline[2]);
+			break;
+		case 0xD1: //POP D
+			pop(opCode);
+			break;
+		case 0xD5: //PUSH D
 			push(opCode);
 			break;
 		case 0xE1: //POP H
@@ -180,8 +192,19 @@ bool State::StepOpCode()
 			std::swap(registers.h(), registers.d());
 			std::swap(registers.l(), registers.e());
 			break;
+		case 0xF1: //POP PSW
+			pop(opCode);
+			break;
+		case 0xF5: //PUSH PSW
+			push(opCode);
+			break;
 		case 0xF6: //ORI
 			registers.flags.bitOpCheck(registers.a() |= opline[1]);
+			break;
+		case 0xFB: //EI
+			//Would be more accurate to delay enabling
+			//until end of *next* instruction, unsure if important
+			registers.int_enable() = 1;
 			break;
 		case 0xFE: //CPI
 			registers.a() = registers.flags.DoSubtraction(registers.a(), opline[1]);

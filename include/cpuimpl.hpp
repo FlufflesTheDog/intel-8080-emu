@@ -12,18 +12,18 @@ inline void State::dad(byte op)
 
 	switch (op >> 4 & 0b11)
 	{
-	case 0:
-		dad_(registers.b(), registers.c());
-		break;
-	case 1:
-		dad_(registers.d(), registers.e());
-		break;
-	case 2:
-		dad_(registers.h(), registers.l());
-		break;
-	case 3:
-		dad_(registers.SP >> 8, registers.SP & 0xFF);
-		break;
+		case 0:
+			dad_(registers.b(), registers.c());
+			break;
+		case 1:
+			dad_(registers.d(), registers.e());
+			break;
+		case 2:
+			dad_(registers.h(), registers.l());
+			break;
+		case 3:
+			dad_(registers.SP >> 8, registers.SP & 0xFF);
+			break;
 	}
 }
 
@@ -41,18 +41,18 @@ inline void State::inx(byte op)
 	};
 	switch (op >> 4 & 0b11)
 	{
-	case 0:
-		inx_(registers.b(), registers.c());
-		break;
-	case 1:
-		inx_(registers.d(), registers.e());
-		break;
-	case 2:
-		inx_(registers.h(), registers.l());
-		break;
-	case 3:
-		++registers.SP;
-		break;
+		case 0:
+			inx_(registers.b(), registers.c());
+			break;
+		case 1:
+			inx_(registers.d(), registers.e());
+			break;
+		case 2:
+			inx_(registers.h(), registers.l());
+			break;
+		case 3:
+			++registers.SP;
+			break;
 	}
 }
 inline bool State::jcnd(byte* op)
@@ -62,18 +62,18 @@ inline bool State::jcnd(byte* op)
 	bool tgt = instr & 1;
 	switch ((instr >> 4) & 0b11)
 	{
-	case 0:
-		pass = registers.flags.Zero == tgt;
-		break;
-	case 1:
-		pass = registers.flags.Carry == tgt;
-		break;
-	case 2:
-		pass = registers.flags.Parity == tgt;
-		break;
-	case 3:
-		pass = registers.flags.Sign == tgt;
-		break;
+		case 0:
+			pass = registers.flags.Zero == tgt;
+			break;
+		case 1:
+			pass = registers.flags.Carry == tgt;
+			break;
+		case 2:
+			pass = registers.flags.Parity == tgt;
+			break;
+		case 3:
+			pass = registers.flags.Sign == tgt;
+			break;
 	}
 	if (pass) { jmp(op); }
 	return pass;
@@ -108,38 +108,44 @@ inline void State::pop(byte op)
 	};
 	switch (op >> 4 & 0b11)
 	{
-	case 0:
-		pop_(registers.b(), registers.c());
-		break;
-	case 1:
-		pop_(registers.d(), registers.e());
-		break;
-	case 2:
-		pop_(registers.h(), registers.l());
-		break;
-	case 3:
-		break;
+		case 0:
+			pop_(registers.b(), registers.c());
+			break;
+		case 1:
+			pop_(registers.d(), registers.e());
+			break;
+		case 2:
+			pop_(registers.h(), registers.l());
+			break;
+		case 3:
+		{ //PSW
+			byte flagByte;
+			pop_(registers.a(), flagByte);
+			registers.byteToFlags(flagByte);
+			break;
+		}
 	}
 }
 
 inline void State::push(byte op)
 {
-	auto push_ = [this](byte& rh, byte& rl) {
+	auto push_ = [this](byte rh, byte rl) {
 		Memory[--registers.SP] = rh;
 		Memory[--registers.SP] = rl;
 	};
 	switch (op >> 4 & 0b11)
 	{
-	case 0:
-		push_(registers.b(), registers.c());
-		break;
-	case 1:
-		push_(registers.d(), registers.e());
-		break;
-	case 2:
-		push_(registers.h(), registers.l());
-		break;
-	case 3:
-		break;
+		case 0:
+			push_(registers.b(), registers.c());
+			break;
+		case 1:
+			push_(registers.d(), registers.e());
+			break;
+		case 2:
+			push_(registers.h(), registers.l());
+			break;
+		case 3: //PSW
+			push_(registers.a(), registers.flagsToByte());
+			break;
 	}
 }
