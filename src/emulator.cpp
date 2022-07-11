@@ -148,6 +148,7 @@ bool State::StepOpCode()
 			registers.flags.bitOpCheck(registers.a() |= Memory[registers.GetHL()]);
 			break;
 		case 0xC1: //POP B
+			pop(opCode);
 			break;
 		case 0xC2: //JNZ
 			altSpeed = jcnd(opline);
@@ -159,7 +160,7 @@ bool State::StepOpCode()
 			push(opCode);
 			break;
 		case 0xC6: //ADI D8
-			registers.a() = registers.flags.DoAddition(registers.a(), 1);
+			registers.a() = registers.flags.DoAddition(registers.a(), opline[1]);
 			break;
 		case 0xC9:
 		{ //RET
@@ -175,6 +176,10 @@ bool State::StepOpCode()
 			break;
 		case 0xD1: //POP D
 			pop(opCode);
+			break;
+		case 0xD3: // OUT
+			// Don't know what to do here (yet)
+			// Lol idiot
 			break;
 		case 0xD5: //PUSH D
 			push(opCode);
@@ -207,7 +212,7 @@ bool State::StepOpCode()
 			registers.int_enable() = 1;
 			break;
 		case 0xFE: //CPI
-			registers.a() = registers.flags.DoSubtraction(registers.a(), opline[1]);
+			registers.flags.DoSubtraction(registers.a(), opline[1]);
 			break;
 		default:
 		{
@@ -222,7 +227,6 @@ bool State::StepOpCode()
 			}
 		}
 	}
-
 	//cycleCount += altSpeed ? opCodeInfo.time.max : opCodeInfo.time.min;
 	return true;
 }

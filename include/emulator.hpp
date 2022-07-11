@@ -29,7 +29,7 @@ struct Flags
 	void SetMainFlags(byte n)
 	{
 		Zero = n == 0;
-		Sign = n & 0x80;
+		Sign = (0x80 == (n & 0x80));
 		Parity = __builtin_parity(n) == 0;
 	}
 
