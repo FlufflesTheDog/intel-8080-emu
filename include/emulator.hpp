@@ -81,6 +81,10 @@ struct Registers
 	constexpr uint8_t& e();
 	constexpr uint8_t& h();
 	constexpr uint8_t& l();
+	/// <summary>
+	/// Interrupts Enable
+	/// </summary>
+	/// <returns></returns>
 	constexpr uint8_t& int_enable();
 	constexpr void SetSPLowBits(uint8_t l);
 	constexpr void SetSPHighBits(uint8_t h);
