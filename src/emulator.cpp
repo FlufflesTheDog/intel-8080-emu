@@ -182,11 +182,13 @@ bool State::StepOpCode()
 			pop(opCode);
 			break;
 		case 0xD3: // OUT
-			// Don't know what to do here (yet)
-			// Lol idiot
+			devices->OUT(opline[1], registers.a());
 			break;
 		case 0xD5: //PUSH D
 			push(opCode);
+			break;
+		case 0xDB: // IN
+			registers.a() = devices->IN(opline[1]);
 			break;
 		case 0xE1: //POP H
 			pop(opCode);
