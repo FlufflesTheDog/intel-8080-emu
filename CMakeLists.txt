@@ -15,6 +15,7 @@ target_compile_options(main_compiler_flags INTERFACE
 )
 
 target_link_libraries(Emulator PRIVATE main_compiler_flags)
+target_link_libraries(Emulator PRIVATE SDL2)
 
 
 
