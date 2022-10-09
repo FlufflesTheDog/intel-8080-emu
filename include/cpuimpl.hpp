@@ -55,11 +55,39 @@ inline void State::inx(byte op)
 			break;
 	}
 }
+inline void State::ret()
+{
+	registers.PC = combineLH(Memory[registers.SP], Memory[registers.SP + 1]);
+	registers.SP += 2;
+}
+inline bool State::rcnd(byte* op)
+{
+	byte instr = op[0];
+	bool pass = false;
+	bool tgt = instr >> 3 & 1;
+	switch ((instr >> 4) & 0b11)
+	{
+		case 0:
+			pass = registers.flags.Zero == tgt;
+			break;
+		case 1:
+			pass = registers.flags.Carry == tgt;
+			break;
+		case 2:
+			pass = registers.flags.Parity == tgt;
+			break;
+		case 3:
+			pass = registers.flags.Sign == tgt;
+			break;
+	}
+	if (pass) { ret(); }
+	return pass;
+}
 inline bool State::jcnd(byte* op)
 {
 	byte instr = op[0];
 	bool pass = false;
-	bool tgt = instr & 1;
+	bool tgt = instr >> 3 & 1;
 	switch ((instr >> 4) & 0b11)
 	{
 		case 0:
@@ -150,13 +178,15 @@ inline void State::push(byte op)
 	}
 }
 
-inline void State::rotateLeft(bool carry) {
+inline void State::rotateLeft(bool carry)
+{
 	uint8_t newCarry = registers.a() >> 7;
 	uint8_t lowBit = carry ? registers.flags.Carry : newCarry;
 	registers.a() = registers.a() << 1 & lowBit;
 	registers.flags.Carry = newCarry;
 }
-inline void State::rotateRight(bool carry) {
+inline void State::rotateRight(bool carry)
+{
 	uint8_t newCarry = registers.a() << 7 & 1;
 	uint8_t highBit = carry ? registers.flags.Carry : newCarry;
 	highBit <<= 7;

@@ -32,10 +32,26 @@ bool State::IsValid()
 	return Memory != nullptr;
 }
 
+bool State::Interrupt(int code)
+{
+	if (!registers.int_enable()) {
+		return true;
+	}
+	auto push = [this](byte rh, byte rl) {
+		Memory[--registers.SP] = rh;
+		Memory[--registers.SP] = rl;
+	};
+	push(registers.PC >> 8, registers.PC & 0xFF);
+	registers.PC = 8 * code;
+	return false;
+}
+
+bool verbose = false;
 bool State::StepOpCode()
 {
 	byte* opline = Memory.get() + registers.PC;
-	OpUtils::disassembleOp(Memory.get(), registers.PC);
+	if (verbose)
+		OpUtils::disassembleOp(Memory.get(), registers.PC);
 	byte opCode = opline[0];
 	OpUtils::BriefOpData opCodeInfo = OpUtils::opData(opCode);
 	registers.PC += opCodeInfo.size;
@@ -48,6 +64,9 @@ bool State::StepOpCode()
 			registers.c() = opline[1];
 			registers.b() = opline[2];
 			break;
+		case 0x03: //INX B
+			inx(registers.b());
+			break;
 		case 0x05: //DCR B
 			dcr(registers.b());
 			break;
@@ -56,6 +75,9 @@ bool State::StepOpCode()
 			break;
 		case 0x09: //DAD B
 			dad(opCode);
+			break;
+		case 0x0A: //LDAX B
+			registers.a() = Memory[combineLH(registers.c(), registers.b())];
 			break;
 		case 0x0D: //DCR C
 			dcr(registers.c());
@@ -107,11 +129,20 @@ bool State::StepOpCode()
 			*/
 			Memory[combineLH(opline[1], opline[2])] = registers.a();
 			break;
+		case 0x35: //DCR M
+			dcr(Memory[registers.GetHL()]);
+			break;
 		case 0x36: //MVI M,D8
 			mov(opline);
 			break;
+		case 0x37: //STC
+			registers.flags.Carry = 1;
+			break;
 		case 0x3a: //LDA adr
 			registers.a() = Memory[combineLH(opline[1], opline[2])];
+			break;
+		case 0x3D: //DCR A
+			dcr(registers.a());
 			break;
 		case 0x3e: //MVI A,D8
 			mov(opline);
@@ -119,10 +150,19 @@ bool State::StepOpCode()
 		case 0x56: //MOV D,M
 			mov(opline);
 			break;
+		case 0x57: //MOV D,A
+			mov(opline);
+			break;
 		case 0x5e: //MOV E,M
 			mov(opline);
 			break;
+		case 0x5F: //MOV E, A
+			mov(opline);
+			break;
 		case 0x66: //MOV H,M
+			mov(opline);
+			break;
+		case 0x67: //MOV H, A
 			mov(opline);
 			break;
 		case 0x6F: //MOV L,A
@@ -169,9 +209,14 @@ bool State::StepOpCode()
 		case 0xC6: //ADI D8
 			registers.a() = registers.flags.DoAddition(registers.a(), opline[1]);
 			break;
+		case 0xC8: //RZ
+			rcnd(opline);
+			break;
 		case 0xC9: //RET
-			registers.PC = combineLH(Memory[registers.SP], Memory[registers.SP + 1]);
-			registers.SP += 2;
+			ret();
+			break;
+		case 0xCA: //JZ
+			jcnd(opline);
 			break;
 		case 0xCD: //CALL
 			Memory[--registers.SP] = registers.PC >> 8;
@@ -189,6 +234,9 @@ bool State::StepOpCode()
 			break;
 		case 0xDB: // IN
 			registers.a() = devices->IN(opline[1]);
+			break;
+		case 0xDA: //JC
+			jcnd(opline);
 			break;
 		case 0xE1: //POP H
 			pop(opCode);

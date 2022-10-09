@@ -127,19 +127,22 @@ public:
 	/// <returns>True if it succeeded. False if it failed to process the OP Code</returns>
 	bool StepOpCode();
 	bool IsValid();
+	bool Interrupt(int code);
 	struct IODeviceHandler {
 		virtual byte IN(byte port) = 0;
 		virtual void OUT(byte port, byte data) = 0;
 	};
 	std::unique_ptr<IODeviceHandler> devices;
+	std::unique_ptr<byte[]> Memory;
 private:
 	static constexpr int RAMSize = 0x10000; //0xFFFF + 1 == 0x10000;
-	std::unique_ptr<byte[]> Memory;
 	Registers registers{};
 	uint16_t readAddr(const byte* mem) const;
 	void dad(byte op);
 	void dcr(byte& n);
 	void inx(byte op);
+	void ret();
+	bool rcnd(byte* op);
 	bool jcnd(byte* op);
 	void jmp(byte* op);
 	void mov(byte* op);
