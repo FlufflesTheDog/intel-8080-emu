@@ -96,10 +96,10 @@ bool State::StepOpCode()
 		case 0x0D: //DCR C
 			dcr(registers.c());
 			break;
-		case 0x0e: //MVI C, D8
+		case 0x0E: //MVI C, D8
 			mov(opline);
 			break;
-		case 0x0f: //RRC
+		case 0x0F: //RRC
 			rotateRight();
 			break;
 		case 0x11: //LXI D, D16
@@ -165,7 +165,7 @@ bool State::StepOpCode()
 		case 0x37: //STC
 			registers.flags.Carry = 1;
 			break;
-		case 0x3a: //LDA adr
+		case 0x3A: //LDA adr
 			registers.a() = Memory[combineLH(opline[1], opline[2])];
 			break;
 		case 0x3C: //INR A
@@ -174,7 +174,7 @@ bool State::StepOpCode()
 		case 0x3D: //DCR A
 			dcr(registers.a());
 			break;
-		case 0x3e: //MVI A,D8
+		case 0x3E: //MVI A,D8
 			mov(opline);
 			break;
 		case 0x46: //MOV B, M
@@ -189,7 +189,7 @@ bool State::StepOpCode()
 		case 0x57: //MOV D,A
 			mov(opline);
 			break;
-		case 0x5e: //MOV E,M
+		case 0x5E: //MOV E,M
 			mov(opline);
 			break;
 		case 0x5F: //MOV E, A
