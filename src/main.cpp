@@ -2,6 +2,7 @@
 #include "ioport.hpp"
 #include <SDL2/SDL.h>
 #include <chrono>
+#include <thread>
 
 struct ScreenData {
 	static constexpr int width = 224;
@@ -23,12 +24,12 @@ struct ScreenData {
 	{
 		SDL_LockSurface(surface);
 		auto pixels = static_cast<unsigned*>(surface->pixels);
-		auto bit = [](int n, int bit) -> OpUtils::byte {
+		auto getBit = [](int n, int bit) -> OpUtils::byte {
 			n >>= bit;
 			return (n & 1) * 0xFF;
 		};
 		for (int i = 0; i < width * height; ++i) {
-			auto color = bit(ram[i / 8], i % 8);
+			auto color = getBit(ram[i / 8], i % 8);
 			auto x = i / height;
 			auto y = height - 1 - i % height;
 			pixels[y * width + x] = SDL_MapRGB(surface->format, color, color, color);
@@ -56,20 +57,21 @@ int main() {
 	while (running) {
 		while (SDL_PollEvent(&InputEvent)) {
 			if (InputEvent.type == SDL_QUIT)
-				goto done;
+				return 0;
 		}
 		auto now = std::chrono::steady_clock::now();
 		if (now > nextDraw) {
-			nextDraw = now + std::chrono::milliseconds(16);
-			emulator.Interrupt(2);
-			if (halfDone) //Normally screen would update twice for frame, alternating between top and bottom
-				//but this is simplier and probably faster on modern systems
+			nextDraw = now + std::chrono::milliseconds(8);
+			if (halfDone) {
+				//Normally screen would update twice for frame, alternating between top and bottom
+				//but this is simplier and probably faster on modern systems, at least with the current setup
 				renderer.drawScreen(emulator.Memory.get() + 0x2400);
+				emulator.Interrupt(2);
+			} else {
+				emulator.Interrupt(1);
+			}
 			halfDone = !halfDone;
 		}
-		//SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0xFF, 0xFF, 0xFF));
-
 		running = emulator.StepOpCode();
 	}
-done:;
 }
