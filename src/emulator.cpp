@@ -93,6 +93,9 @@ bool State::StepOpCode()
 		case 0x0A: //LDAX B
 			registers.a() = Memory[combineLH(registers.c(), registers.b())];
 			break;
+		case 0x0C: //INR C
+			inr(registers.c());
+			break;
 		case 0x0D: //DCR C
 			dcr(registers.c());
 			break;
@@ -108,6 +111,12 @@ bool State::StepOpCode()
 			break;
 		case 0x13: //INX D
 			inx(opCode);
+			break;
+		case 0x14: //INR D
+			inr(registers.d());
+			break;
+		case 0x15: //DCR D
+			dcr(registers.d());
 			break;
 		case 0x16: //MVI D, D8
 			mov(opline);
@@ -125,6 +134,10 @@ bool State::StepOpCode()
 			registers.l() = opline[1];
 			registers.h() = opline[2];
 			break;
+		case 0x22: //SHLD
+			Memory[combineLH(opline[1], opline[2])] = registers.l();
+			Memory[combineLH(opline[1], opline[2]) + 1] = registers.h();
+			break;
 		case 0x23: //INX H
 			inx(opCode);
 			break;
@@ -141,8 +154,14 @@ bool State::StepOpCode()
 			registers.l() = Memory[combineLH(opline[1], opline[2])];
 			registers.h() = Memory[combineLH(opline[1], opline[2]) + 1];
 			break;
+		case 0x2C: //INR L
+			inr(registers.l());
+			break;
 		case 0x2E: // MVI L
 			mov(opline);
+			break;
+		case 0x2F: //CMA
+			registers.a() = ~registers.a();
 			break;
 		case 0x31: //LXI SP
 			registers.SP = combineLH(opline[1], opline[2]);
@@ -155,6 +174,9 @@ bool State::StepOpCode()
 				HI ADD with LOW ADD.
 			*/
 			Memory[combineLH(opline[1], opline[2])] = registers.a();
+			break;
+		case 0x34: //INR M
+			inr(Memory[registers.GetHL()]);
 			break;
 		case 0x35: //DCR M
 			dcr(Memory[registers.GetHL()]);
@@ -177,7 +199,16 @@ bool State::StepOpCode()
 		case 0x3E: //MVI A,D8
 			mov(opline);
 			break;
+		case 0x41: //MOV B, C
+			mov(opline);
+			break;
 		case 0x46: //MOV B, M
+			mov(opline);
+			break;
+		case 0x47: //MOV B, A
+			mov(opline);
+			break;
+		case 0x4E: //MOV C, M
 			mov(opline);
 			break;
 		case 0x4F: //MOV C, A
@@ -195,6 +226,12 @@ bool State::StepOpCode()
 		case 0x5F: //MOV E, A
 			mov(opline);
 			break;
+		case 0x61: //MOV H, C
+			mov(opline);
+			break;
+		case 0x65: //MOV H, L
+			mov(opline);
+			break;
 		case 0x66: //MOV H,M
 			mov(opline);
 			break;
@@ -204,7 +241,16 @@ bool State::StepOpCode()
 		case 0x6F: //MOV L,A
 			mov(opline);
 			break;
+		case 0x68: //MOV L, B
+			mov(opline);
+			break;
+		case 0x69: //MOV L, C
+			mov(opline);
+			break;
 		case 0x70: //MOV M, B
+			mov(opline);
+			break;
+		case 0x71: //MOV M, C
 			mov(opline);
 			break;
 		case 0x76: //HLT
@@ -233,6 +279,27 @@ bool State::StepOpCode()
 		case 0x7E: //MOV A, M
 			mov(opline);
 			break;
+		case 0x80: //ADD B
+			registers.a() = registers.flags.DoAddition(registers.a(), registers.b());
+			break;
+		case 0x81: //ADD C
+			registers.a() = registers.flags.DoAddition(registers.a(), registers.c());
+			break;
+		case 0x85: //ADD L
+			registers.a() = registers.flags.DoAddition(registers.a(), registers.l());
+			break;
+		case 0x86: //ADD M
+			registers.a() = registers.flags.DoAddition(registers.a(), Memory[registers.GetHL()]);
+			break;
+		case 0x97: //SUB A
+			registers.a() = registers.flags.DoSubtraction(registers.a(), registers.a());
+			break;
+		case 0xA0: //ANA B
+			registers.flags.bitOpCheck(registers.a() &= registers.b());
+			break;
+		case 0xA6: //ANA M
+			registers.flags.bitOpCheck(registers.a() &= Memory[registers.GetHL()]);
+			break;
 		case 0xA7: //ANA A
 			registers.flags.bitOpCheck(registers.a() &= registers.a());
 			break;
@@ -250,6 +317,15 @@ bool State::StepOpCode()
 			break;
 		case 0xB6: //ORA M
 			registers.flags.bitOpCheck(registers.a() |= Memory[registers.GetHL()]);
+			break;
+		case 0xB8: //CMP B
+			registers.flags.DoSubtraction(registers.a(), registers.b());
+			break;
+		case 0xBC: //CMP H
+			registers.flags.DoSubtraction(registers.a(), registers.h());
+			break;
+		case 0xBE: //CMP M
+			registers.flags.DoSubtraction(registers.a(), Memory[registers.GetHL()]);
 			break;
 		case 0xC0: //RNZ
 			rcnd(opline);
@@ -281,6 +357,9 @@ bool State::StepOpCode()
 		case 0xCA: //JZ
 			jcnd(opline);
 			break;
+		case 0xCC: //CZ
+			ccnd(opline);
+			break;
 		case 0xCD: //CALL
 			call(opline);
 			break;
@@ -296,6 +375,9 @@ bool State::StepOpCode()
 		case 0xD3: // OUT
 			devices->OUT(opline[1], registers.a());
 			break;
+		case 0xD4: //CNC
+			ccnd(opline);
+			break;
 		case 0xD5: //PUSH D
 			push(opCode);
 			break;
@@ -310,6 +392,9 @@ bool State::StepOpCode()
 			break;
 		case 0xDA: //JC
 			jcnd(opline);
+			break;
+		case 0xDE: //SBI
+			registers.a() = registers.flags.DoSubtraction(registers.a(), opline[1], true);
 			break;
 		case 0xE1: //POP H
 			pop(opCode);
@@ -339,6 +424,9 @@ bool State::StepOpCode()
 			break;
 		case 0xF6: //ORI
 			registers.flags.bitOpCheck(registers.a() |= opline[1]);
+			break;
+		case 0xFA: //JM
+			jcnd(opline);
 			break;
 		case 0xFB: //EI
 			//Would be more accurate to delay enabling
