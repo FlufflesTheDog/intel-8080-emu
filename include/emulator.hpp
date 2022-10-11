@@ -37,7 +37,7 @@ struct Flags
 	{
 		unsigned result = l - r;
 		result -= withBorrow && Carry;
-		Carry = result >> 8;
+		Carry = result >> 8 > 0;
 		SetMainFlags(result);
 		return result;
 	}
@@ -46,7 +46,7 @@ struct Flags
 	{
 		unsigned result = l + r;
 		result += withCarry && Carry;
-		Carry = result >> 8;
+		Carry = result >> 8 > 0;
 		SetMainFlags(result);
 		return result;
 	}
