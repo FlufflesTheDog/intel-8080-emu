@@ -7,7 +7,7 @@ inline void State::dad(byte op)
 		result += registers.GetHL();
 		registers.l() = result & 0xFF;
 		registers.h() = result >> 8;
-		registers.flags.Carry = result >> 16;
+		registers.flags.Carry = result >> 16 > 0;
 	};
 
 	switch (op >> 4 & 0b11)
@@ -25,6 +25,12 @@ inline void State::dad(byte op)
 			dad_(registers.SP >> 8, registers.SP & 0xFF);
 			break;
 	}
+}
+
+inline void State::inr(byte& n)
+{
+	++n;
+	registers.flags.SetMainFlags(n);
 }
 
 inline void State::dcr(byte& n)
@@ -55,11 +61,36 @@ inline void State::inx(byte op)
 			break;
 	}
 }
+
+inline void State::dcx(byte op)
+{
+	auto dcx_ = [](byte& rh, byte& rl) {
+		--rl;
+		if (rl == 255) --rh;
+	};
+	switch (op >> 4 & 0b11)
+	{
+		case 0:
+			dcx_(registers.b(), registers.c());
+			break;
+		case 1:
+			dcx_(registers.d(), registers.e());
+			break;
+		case 2:
+			dcx_(registers.h(), registers.l());
+			break;
+		case 3:
+			--registers.SP;
+			break;
+	}
+}
+
 inline void State::ret()
 {
 	registers.PC = combineLH(Memory[registers.SP], Memory[registers.SP + 1]);
 	registers.SP += 2;
 }
+
 inline bool State::rcnd(byte* op)
 {
 	byte instr = op[0];
@@ -83,6 +114,9 @@ inline bool State::rcnd(byte* op)
 	if (pass) { ret(); }
 	return pass;
 }
+
+inline void State::jmp(byte* op) { registers.PC = op[1] | op[2] << 8; }
+
 inline bool State::jcnd(byte* op)
 {
 	byte instr = op[0];
@@ -107,7 +141,36 @@ inline bool State::jcnd(byte* op)
 	return pass;
 }
 
-inline void State::jmp(byte* op) { registers.PC = op[1] | op[2] << 8; }
+inline void State::call(byte* op)
+{
+	Memory[--registers.SP] = registers.PC >> 8;
+	Memory[--registers.SP] = registers.PC & 0xFF;
+	registers.PC = combineLH(op[1], op[2]);
+}
+
+inline bool State::ccnd(byte* op)
+{
+	byte instr = op[0];
+	bool pass = false;
+	bool tgt = instr >> 3 & 1;
+	switch ((instr >> 4) & 0b11)
+	{
+		case 0:
+			pass = registers.flags.Zero == tgt;
+			break;
+		case 1:
+			pass = registers.flags.Carry == tgt;
+			break;
+		case 2:
+			pass = registers.flags.Parity == tgt;
+			break;
+		case 3:
+			pass = registers.flags.Sign == tgt;
+			break;
+	}
+	if (pass) { call(op); }
+	return pass;
+}
 
 inline void State::mov(byte* op)
 {
@@ -187,7 +250,7 @@ inline void State::rotateLeft(bool carry)
 }
 inline void State::rotateRight(bool carry)
 {
-	uint8_t newCarry = registers.a() << 7 & 1;
+	uint8_t newCarry = registers.a() & 1;
 	uint8_t highBit = carry ? registers.flags.Carry : newCarry;
 	highBit <<= 7;
 	registers.a() = registers.a() >> 1 & highBit;

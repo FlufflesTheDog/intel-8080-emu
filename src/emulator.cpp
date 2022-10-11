@@ -34,9 +34,10 @@ bool State::IsValid()
 
 bool State::Interrupt(int code)
 {
-	if (!registers.int_enable()) {
+	if (registers.int_enable() != 1) {
 		return true;
 	}
+	registers.int_enable() = false;
 	auto push = [this](byte rh, byte rl) {
 		Memory[--registers.SP] = rh;
 		Memory[--registers.SP] = rl;
@@ -47,12 +48,19 @@ bool State::Interrupt(int code)
 }
 
 bool verbose = false;
+int breakCode = 0x00;
+void bp() {}
 bool State::StepOpCode()
 {
+	if (registers.int_enable() == 255)
+		registers.int_enable() = 1;
 	byte* opline = Memory.get() + registers.PC;
 	if (verbose)
 		OpUtils::disassembleOp(Memory.get(), registers.PC);
 	byte opCode = opline[0];
+	if (registers.PC == breakCode) {
+		bp();
+	}
 	OpUtils::BriefOpData opCodeInfo = OpUtils::opData(opCode);
 	registers.PC += opCodeInfo.size;
 	[[maybe_unused]] bool altSpeed = false;
@@ -65,13 +73,19 @@ bool State::StepOpCode()
 			registers.b() = opline[2];
 			break;
 		case 0x03: //INX B
-			inx(registers.b());
+			inx(opCode);
+			break;
+		case 0x04: //INR B
+			inr(registers.b());
 			break;
 		case 0x05: //DCR B
 			dcr(registers.b());
 			break;
 		case 0x06: //MVI B, D8
 			mov(opline);
+			break;
+		case 0x07: //RLC
+			rotateLeft();
 			break;
 		case 0x09: //DAD B
 			dad(opCode);
@@ -95,6 +109,9 @@ bool State::StepOpCode()
 		case 0x13: //INX D
 			inx(opCode);
 			break;
+		case 0x16: //MVI D, D8
+			mov(opline);
+			break;
 		case 0x19: //DAD D
 			dad(opCode);
 			break;
@@ -114,8 +131,18 @@ bool State::StepOpCode()
 		case 0x26: // MVI H, D8
 			mov(opline);
 			break;
+		case 0x2B: //DCX H
+			dcx(opCode);
+			break;
 		case 0x29: //DAD H
 			dad(opCode);
+			break;
+		case 0x2A: //LHLD
+			registers.l() = Memory[combineLH(opline[1], opline[2])];
+			registers.h() = Memory[combineLH(opline[1], opline[2]) + 1];
+			break;
+		case 0x2E: // MVI L
+			mov(opline);
 			break;
 		case 0x31: //LXI SP
 			registers.SP = combineLH(opline[1], opline[2]);
@@ -141,10 +168,19 @@ bool State::StepOpCode()
 		case 0x3a: //LDA adr
 			registers.a() = Memory[combineLH(opline[1], opline[2])];
 			break;
+		case 0x3C: //INR A
+			inr(registers.a());
+			break;
 		case 0x3D: //DCR A
 			dcr(registers.a());
 			break;
 		case 0x3e: //MVI A,D8
+			mov(opline);
+			break;
+		case 0x46: //MOV B, M
+			mov(opline);
+			break;
+		case 0x4F: //MOV C, A
 			mov(opline);
 			break;
 		case 0x56: //MOV D,M
@@ -168,9 +204,18 @@ bool State::StepOpCode()
 		case 0x6F: //MOV L,A
 			mov(opline);
 			break;
+		case 0x70: //MOV M, B
+			mov(opline);
+			break;
 		case 0x76: //HLT
 			return false;
 		case 0x77: //MOV M, A
+			mov(opline);
+			break;
+		case 0x78: //MOV A, B 
+			mov(opline);
+			break;
+		case 0x79: //MOV A, C
 			mov(opline);
 			break;
 		case 0x7A: //MOV A, D
@@ -182,17 +227,32 @@ bool State::StepOpCode()
 		case 0x7C: //MOV A, H
 			mov(opline);
 			break;
+		case 0x7D: //MOV A, L
+			mov(opline);
+			break;
 		case 0x7E: //MOV A, M
 			mov(opline);
 			break;
 		case 0xA7: //ANA A
 			registers.flags.bitOpCheck(registers.a() &= registers.a());
 			break;
+		case 0xA8: //XRA B
+			registers.flags.bitOpCheck(registers.a() ^= registers.b());
+			break;
 		case 0xAF: //XRA A
 			registers.flags.bitOpCheck(registers.a() ^= registers.a());
 			break;
+		case 0xB0: //ORA B
+			registers.flags.bitOpCheck(registers.a() |= registers.b());
+			break;
+		case 0xB4: //ORA H
+			registers.flags.bitOpCheck(registers.a() |= registers.h());
+			break;
 		case 0xB6: //ORA M
 			registers.flags.bitOpCheck(registers.a() |= Memory[registers.GetHL()]);
+			break;
+		case 0xC0: //RNZ
+			rcnd(opline);
 			break;
 		case 0xC1: //POP B
 			pop(opCode);
@@ -202,6 +262,9 @@ bool State::StepOpCode()
 			break;
 		case 0xC3: //JMP
 			jmp(opline);
+			break;
+		case 0xC4: //CNZ
+			ccnd(opline);
 			break;
 		case 0xC5: //PUSH B
 			push(opCode);
@@ -219,18 +282,28 @@ bool State::StepOpCode()
 			jcnd(opline);
 			break;
 		case 0xCD: //CALL
-			Memory[--registers.SP] = registers.PC >> 8;
-			Memory[--registers.SP] = registers.PC & 0xFF;
-			registers.PC = combineLH(opline[1], opline[2]);
+			call(opline);
+			break;
+		case 0xD0: //RNC
+			rcnd(opline);
 			break;
 		case 0xD1: //POP D
 			pop(opCode);
+			break;
+		case 0xD2: //JNC
+			jcnd(opline);
 			break;
 		case 0xD3: // OUT
 			devices->OUT(opline[1], registers.a());
 			break;
 		case 0xD5: //PUSH D
 			push(opCode);
+			break;
+		case 0xD6: //SUI
+			registers.a() = registers.flags.DoSubtraction(registers.a(), opline[1]);
+			break;
+		case 0xD8: //RC
+			rcnd(opline);
 			break;
 		case 0xDB: // IN
 			registers.a() = devices->IN(opline[1]);
@@ -241,11 +314,18 @@ bool State::StepOpCode()
 		case 0xE1: //POP H
 			pop(opCode);
 			break;
+		case 0xE3: //XTHL
+			std::swap(registers.l(), Memory[registers.SP]);
+			std::swap(registers.h(), Memory[registers.SP + 1]);
+			break;
 		case 0xE5: //PUSH H
 			push(opCode);
 			break;
 		case 0xE6: //ANI
 			registers.flags.bitOpCheck(registers.a() &= opline[1]);
+			break;
+		case 0xE9: //PCHL
+			registers.PC = registers.GetHL();
 			break;
 		case 0xEB: //XCHG
 			std::swap(registers.h(), registers.d());
@@ -263,12 +343,13 @@ bool State::StepOpCode()
 		case 0xFB: //EI
 			//Would be more accurate to delay enabling
 			//until end of *next* instruction, unsure if important
-			registers.int_enable() = 1;
+			registers.int_enable() = 255; //delayed enable
 			break;
 		case 0xFE: //CPI
 			registers.flags.DoSubtraction(registers.a(), opline[1]);
 			break;
 		default:
+			OpUtils::disassembleOp(Memory.get(), registers.PC - opCodeInfo.size);
 			throw std::runtime_error{ "Unimplemented instruction" };
 	}
 	//cycleCount += altSpeed ? opCodeInfo.time.max : opCodeInfo.time.min;

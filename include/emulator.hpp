@@ -139,12 +139,16 @@ private:
 	Registers registers{};
 	uint16_t readAddr(const byte* mem) const;
 	void dad(byte op);
+	void inr(byte& n);
 	void dcr(byte& n);
 	void inx(byte op);
+	void dcx(byte op);
 	void ret();
 	bool rcnd(byte* op);
-	bool jcnd(byte* op);
 	void jmp(byte* op);
+	bool jcnd(byte* op);
+	void call(byte* op);
+	bool ccnd(byte* op);
 	void mov(byte* op);
 	void pop(byte op);
 	void push(byte op);
