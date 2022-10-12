@@ -2,6 +2,7 @@
 #include "ioport.hpp"
 #include <SDL2/SDL.h>
 #include <chrono>
+#include <unordered_map>
 #include <thread>
 
 struct ScreenData {
@@ -49,15 +50,37 @@ struct ScreenData {
 int main() {
 	State emulator("invaders/invaders");
 	emulator.devices = std::make_unique<Devices::SpaceInvadersIO>();
+	auto* io = static_cast<Devices::SpaceInvadersIO*>(emulator.devices.get());
 	bool running = emulator.IsValid();
 	SDL_Event InputEvent;
 	auto nextDraw = std::chrono::steady_clock::now();
 	bool halfDone = false;
 	ScreenData renderer;
+	using Button = Devices::SpaceInvadersIO::Button;
+	std::unordered_map<SDL_Scancode, Button> controls {
+		{SDL_SCANCODE_R, Button::CREDIT},
+		{SDL_SCANCODE_Q, Button::P1_start},
+		{SDL_SCANCODE_W, Button::P1_shoot},
+		{SDL_SCANCODE_A, Button::P1_left},
+		{SDL_SCANCODE_D, Button::P1_right},
+	};
 	while (running) {
 		while (SDL_PollEvent(&InputEvent)) {
-			if (InputEvent.type == SDL_QUIT)
-				return 0;
+			switch(InputEvent.type) {
+				case SDL_QUIT:
+					return 0;
+					break;
+				case SDL_KEYDOWN:
+				case SDL_KEYUP: {
+					auto gameButton = controls.find(InputEvent.key.keysym.scancode);
+					if (gameButton == controls.end())
+						break;
+					if (InputEvent.type == SDL_KEYDOWN)
+						io->pressButton(gameButton->second);
+					else
+						io->releaseButton(gameButton->second);
+				}
+			}
 		}
 		auto now = std::chrono::steady_clock::now();
 		if (now > nextDraw) {
