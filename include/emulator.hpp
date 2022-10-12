@@ -154,6 +154,7 @@ private:
 	void push(byte op);
 	void rotateLeft(bool carry = false);
 	void rotateRight(bool carry = false);
+	void daa();
 };
 
 inline constexpr uint16_t combineLH(OpUtils::byte low, OpUtils::byte high)

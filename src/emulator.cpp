@@ -109,6 +109,9 @@ bool State::StepOpCode()
 			registers.e() = opline[1];
 			registers.d() = opline[2];
 			break;
+		case 0x12: //STAX D
+			Memory[combineLH(registers.e(), registers.d())] = registers.a();
+			break;
 		case 0x13: //INX D
 			inx(opCode);
 			break;
@@ -127,6 +130,9 @@ bool State::StepOpCode()
 		case 0x1A: //LDAX D
 			registers.a() = Memory[combineLH(registers.e(), registers.d())];
 			break;
+		case 0x1B: //DCX B
+			dcx(opCode);
+			break;
 		case 0x1F: //RAR
 			rotateRight(true);
 			break;
@@ -141,8 +147,14 @@ bool State::StepOpCode()
 		case 0x23: //INX H
 			inx(opCode);
 			break;
+		case 0x24: //INR H
+			inr(registers.h());
+			break;
 		case 0x26: // MVI H, D8
 			mov(opline);
+			break;
+		case 0x27: //DAA
+			daa();
 			break;
 		case 0x2B: //DCX H
 			dcx(opCode);
@@ -206,6 +218,9 @@ bool State::StepOpCode()
 			mov(opline);
 			break;
 		case 0x47: //MOV B, A
+			mov(opline);
+			break;
+		case 0x48: //MOV C, B
 			mov(opline);
 			break;
 		case 0x4E: //MOV C, M
@@ -285,11 +300,17 @@ bool State::StepOpCode()
 		case 0x81: //ADD C
 			registers.a() = registers.flags.DoAddition(registers.a(), registers.c());
 			break;
+		case 0x83: //ADD E
+			registers.a() = registers.flags.DoAddition(registers.a(), registers.e());
+			break;
 		case 0x85: //ADD L
 			registers.a() = registers.flags.DoAddition(registers.a(), registers.l());
 			break;
 		case 0x86: //ADD M
 			registers.a() = registers.flags.DoAddition(registers.a(), Memory[registers.GetHL()]);
+			break;
+		case 0x8A: //ADC D
+			registers.a() = registers.flags.DoAddition(registers.a(), registers.d(), true);
 			break;
 		case 0x97: //SUB A
 			registers.a() = registers.flags.DoSubtraction(registers.a(), registers.a());

@@ -248,6 +248,7 @@ inline void State::rotateLeft(bool carry)
 	registers.a() = registers.a() << 1 | lowBit;
 	registers.flags.Carry = newCarry;
 }
+
 inline void State::rotateRight(bool carry)
 {
 	uint8_t newCarry = registers.a() & 1;
@@ -255,4 +256,18 @@ inline void State::rotateRight(bool carry)
 	highBit <<= 7;
 	registers.a() = registers.a() >> 1 | highBit;
 	registers.flags.Carry = newCarry;
+}
+
+inline void State::daa()
+{
+	if ((registers.a() & 0x0F) > 9) {
+		registers.a() += 6;
+	}
+	if ((registers.a() & 0xF0) > (9 << 4) || registers.flags.Carry == 1) {
+		registers.a() += 6 << 4;
+		registers.flags.Carry = 1;
+	} else {
+		registers.flags.Carry = 0;
+	}
+	registers.flags.SetMainFlags(registers.a());
 }
