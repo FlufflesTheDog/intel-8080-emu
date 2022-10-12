@@ -131,6 +131,7 @@ public:
 	struct IODeviceHandler {
 		virtual byte IN(byte port) = 0;
 		virtual void OUT(byte port, byte data) = 0;
+		virtual ~IODeviceHandler() = default;
 	};
 	std::unique_ptr<IODeviceHandler> devices;
 	std::unique_ptr<byte[]> Memory;
